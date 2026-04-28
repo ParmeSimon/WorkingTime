@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 import 'store/work_store.dart';
 import 'theme/app_theme.dart';
@@ -9,6 +12,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/weekly_screen.dart';
 import 'screens/history_screen.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +24,19 @@ Future<void> main() async {
 
   // Initialize French locale for date formatting
   await initializeDateFormatting('fr_FR', null);
+
+  // Initialize timezone database and set device local timezone
+  tz.initializeTimeZones();
+  try {
+    final deviceTz = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(deviceTz.identifier));
+  } catch (_) {
+    // Fallback: keep UTC if timezone detection fails
+  }
+
+  // Initialize notifications
+  await NotificationService.init();
+  await NotificationService.requestPermissions();
 
   // Load persisted data
   final store = WorkStore();

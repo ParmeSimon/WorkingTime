@@ -6,7 +6,6 @@ import '../store/work_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/arc_progress_ring.dart';
 import '../widgets/tag_pill.dart';
-import '../models/work_session.dart';
 
 class WeeklyScreen extends StatefulWidget {
   const WeeklyScreen({super.key});
@@ -157,10 +156,36 @@ class _WeeklyScreenState extends State<WeeklyScreen> {
 
               ..._buildDayRows(store),
 
-              // ── Target editor ──────────────────────────────────────
+              // ── Settings ────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
-                child: _TargetEditor(store: store),
+                child: Text('PARAMÈTRES', style: WTText.caps(11)),
+              ),
+
+              // Objective mode
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                child: _ObjectiveModePicker(store: store),
+              ),
+
+              // Daily schedule — visible only in "Journalier" mode
+              if (store.isDailyMode)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  child: _DailyScheduleEditor(store: store),
+                ),
+
+              // Weekly target — visible only in "Hebdomadaire" mode
+              if (!store.isDailyMode)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  child: _TargetEditor(store: store),
+                ),
+
+              // Lunch break
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                child: _LunchBreakPicker(store: store),
               ),
 
               const SizedBox(height: 60),
@@ -195,7 +220,7 @@ class _WeeklyScreenState extends State<WeeklyScreen> {
           .map((s) => s.duration ?? Duration.zero)
           .fold(Duration.zero, (a, b) => a + b);
 
-      final dailyTarget = store.weeklyTargetHours / 5.0;
+      final dailyTarget = store.dailyTargetForDay(day);
       final dayProgress = dailyTarget > 0
           ? (total.inSeconds / (dailyTarget * 3600)).clamp(0.0, 1.0)
           : 0.0;
@@ -349,6 +374,470 @@ class _DayRow extends StatelessWidget {
             height: 1,
             color: WTColors.border,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Objective Mode Picker ─────────────────────────────────────────────────
+
+class _ObjectiveModePicker extends StatelessWidget {
+  final WorkStore store;
+  const _ObjectiveModePicker({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDaily = store.isDailyMode;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: WTColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: WTColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Mode d\'objectif', style: WTText.label(14)),
+                const SizedBox(height: 2),
+                Text(
+                  isDaily
+                      ? 'Progression sur la journée en cours'
+                      : 'Progression sur la semaine entière',
+                  style:
+                      WTText.body(12).copyWith(color: WTColors.secondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _ModeToggle(
+            isDaily: isDaily,
+            onChanged: (v) =>
+                store.setObjectiveMode(isDailyMode: v),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeToggle extends StatelessWidget {
+  final bool isDaily;
+  final ValueChanged<bool> onChanged;
+  const _ModeToggle({required this.isDaily, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: WTColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: WTColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pill('Jour', isDaily, () => onChanged(true)),
+          _pill('Semaine', !isDaily, () => onChanged(false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? WTColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: WTText.label(13).copyWith(
+            color: selected ? WTColors.surface : WTColors.secondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Daily Schedule Editor ─────────────────────────────────────────────────
+
+class _DailyScheduleEditor extends StatefulWidget {
+  final WorkStore store;
+  const _DailyScheduleEditor({required this.store});
+
+  @override
+  State<_DailyScheduleEditor> createState() => _DailyScheduleEditorState();
+}
+
+class _DailyScheduleEditorState extends State<_DailyScheduleEditor> {
+  bool _expanded = false;
+  late Map<int, double> _local;
+
+  static const _dayNames = {
+    1: 'Lundi',
+    2: 'Mardi',
+    3: 'Mercredi',
+    4: 'Jeudi',
+    5: 'Vendredi',
+    6: 'Samedi',
+    7: 'Dimanche',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocal();
+  }
+
+  void _initLocal() {
+    final custom = widget.store.customDailyHours;
+    _local = {};
+    for (int d = 1; d <= 5; d++) {
+      _local[d] = custom[d] ?? widget.store.weeklyTargetHours / 5.0;
+    }
+  }
+
+  String _fmt(double h) {
+    // Round to nearest 5 min for clean display
+    final totalMin = ((h * 60) / 5).round() * 5;
+    final hours = totalMin ~/ 60;
+    final minutes = totalMin % 60;
+    if (minutes == 0) return '${hours}h';
+    return '${hours}h${minutes.toString().padLeft(2, '0')}';
+  }
+
+  void _increment(int day) {
+    setState(() {
+      _local[day] = ((_local[day]! * 12).round() + 1) / 12.0;
+      if (_local[day]! > 12) _local[day] = 12.0;
+    });
+    widget.store.setCustomDailyHours(_local);
+  }
+
+  void _decrement(int day) {
+    setState(() {
+      _local[day] = ((_local[day]! * 12).round() - 1) / 12.0;
+      if (_local[day]! < 0) _local[day] = 0.0;
+    });
+    widget.store.setCustomDailyHours(_local);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCustom = widget.store.customDailyHours.isNotEmpty;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() {
+              _expanded = !_expanded;
+              if (_expanded) _initLocal();
+            }),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: WTColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: WTColors.border),
+              ),
+              child: Row(
+                children: [
+                  Text('Horaires par jour', style: WTText.label(14)),
+                  const Spacer(),
+                  if (!_expanded && hasCustom)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: WTColors.accent.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Personnalisé',
+                        style: WTText.label(11)
+                            .copyWith(color: WTColors.primary),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    color: WTColors.secondary,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: WTColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: WTColors.border),
+              ),
+              child: Column(
+                children: [
+                  ...List.generate(5, (i) {
+                    final day = i + 1;
+                    return Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 90,
+                            child: Text(
+                              _dayNames[day]!,
+                              style: WTText.label(14),
+                            ),
+                          ),
+                          const Spacer(),
+                          // Decrement
+                          GestureDetector(
+                            onTap: () => _decrement(day),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: WTColors.background,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: WTColors.border),
+                              ),
+                              child: const Icon(Icons.remove,
+                                  size: 16,
+                                  color: WTColors.secondary),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 48,
+                            child: Text(
+                              _fmt(_local[day]!),
+                              textAlign: TextAlign.center,
+                              style: WTText.mono(16),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Increment
+                          GestureDetector(
+                            onTap: () => _increment(day),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: WTColors.background,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: WTColors.border),
+                              ),
+                              child: const Icon(Icons.add,
+                                  size: 16,
+                                  color: WTColors.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                  // Total display
+                  Container(
+                    height: 1,
+                    color: WTColors.border,
+                    margin: const EdgeInsets.only(bottom: 12),
+                  ),
+                  Row(
+                    children: [
+                      Text('Total semaine',
+                          style: WTText.body(13)
+                              .copyWith(color: WTColors.secondary)),
+                      const Spacer(),
+                      Text(
+                        _fmt(_local.values
+                            .fold(0.0, (a, b) => a + b)),
+                        style: WTText.mono(16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Reset to uniform distribution
+                  GestureDetector(
+                    onTap: () {
+                      widget.store.setCustomDailyHours({});
+                      _initLocal();
+                      setState(() {});
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: WTColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: WTColors.border),
+                      ),
+                      child: Center(
+                        child: Text('Réinitialiser',
+                            style: WTText.label(14)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Lunch Break Picker ────────────────────────────────────────────────────
+
+class _LunchBreakPicker extends StatefulWidget {
+  final WorkStore store;
+  const _LunchBreakPicker({required this.store});
+
+  @override
+  State<_LunchBreakPicker> createState() => _LunchBreakPickerState();
+}
+
+class _LunchBreakPickerState extends State<_LunchBreakPicker> {
+  bool _expanded = false;
+
+  static const _options = [0, 30, 45, 60, 90, 120];
+
+  String _label(int minutes) {
+    if (minutes == 0) return 'Aucune';
+    if (minutes < 60) return '$minutes min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h}h' : '${h}h${m.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = widget.store.lunchBreakMinutes;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: WTColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: WTColors.border),
+              ),
+              child: Row(
+                children: [
+                  Text('Pause déjeuner', style: WTText.label(14)),
+                  const Spacer(),
+                  if (!_expanded)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: WTColors.orange.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _label(current),
+                        style:
+                            WTText.label(13).copyWith(color: WTColors.orange),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    color: WTColors.secondary,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: WTColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: WTColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Durée de pause ajoutée à votre heure de départ',
+                    style: WTText.body(13)
+                        .copyWith(color: WTColors.secondary),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _options.map((minutes) {
+                      final selected = minutes == current;
+                      return GestureDetector(
+                        onTap: () {
+                          widget.store.setLunchBreakMinutes(minutes);
+                          setState(() => _expanded = false);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? WTColors.orange
+                                : WTColors.background,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selected
+                                  ? WTColors.orange
+                                  : WTColors.border,
+                            ),
+                          ),
+                          child: Text(
+                            _label(minutes),
+                            style: WTText.label(14).copyWith(
+                              color: selected
+                                  ? WTColors.surface
+                                  : WTColors.primary,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

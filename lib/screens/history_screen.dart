@@ -320,10 +320,32 @@ class _SessionRow extends StatelessWidget {
               ),
             ),
 
-            // Duration
-            Text(
-              session.formattedDuration,
-              style: WTText.mono(15),
+            // Duration + pause pill
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  session.formattedDuration,
+                  style: WTText.mono(15),
+                ),
+                if (session.pauses.isNotEmpty &&
+                    session.departureTime != null) ...[
+                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: WTColors.orange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${session.pauses.length} pause${session.pauses.length > 1 ? 's' : ''}',
+                      style: WTText.body(10)
+                          .copyWith(color: WTColors.orange),
+                    ),
+                  ),
+                ],
+              ],
             ),
 
             // Delete button

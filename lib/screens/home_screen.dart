@@ -45,9 +45,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  void _startPulse() {
-    _pulseCtrl.repeat(reverse: true);
-  }
+  void _startPulse() => _pulseCtrl.repeat(reverse: true);
 
   void _stopPulse() {
     _pulseCtrl.stop();
@@ -56,20 +54,54 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _formatTime(DateTime dt) => DateFormat('HH:mm').format(dt);
 
-  String _elapsedFormatted(DateTime start) {
-    final d = _now.difference(start);
+  /// Net work time = elapsed since arrival minus all pause durations.
+  String _netElapsedFormatted(WorkSession active) {
+    final elapsed = _now.difference(active.arrivalTime);
+    final net = elapsed - active.totalPauseDurationAt(_now);
+    final h = net.inHours;
+    final m = net.inMinutes.remainder(60);
+    return '${h.toString().padLeft(2, '0')}h${m.toString().padLeft(2, '0')}';
+  }
+
+  /// Current pause duration.
+  String _pauseDurationFormatted(WorkPause pause) {
+    final d = _now.difference(pause.start);
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    if (h > 0) return '${h}h${m.toString().padLeft(2, '0')}';
+    return '$m min';
+  }
+
+  double _ringProgress(WorkStore store) {
+    if (store.isDailyMode) {
+      // Daily mode: active session net time vs today's daily target
+      final active = store.activeSession;
+      if (active == null) return 0;
+      final dailySecs = store.dailyTargetForDay(active.arrivalTime) * 3600;
+      if (dailySecs == 0) return 0;
+      final elapsed = _now.difference(active.arrivalTime);
+      final net = elapsed - active.totalPauseDurationAt(_now);
+      return (net.inSeconds / dailySecs).clamp(0.0, 1.0);
+    } else {
+      // Weekly mode: cumulative week progress (live)
+      return store.currentWeekProgress;
+    }
+  }
+
+  /// Label and value shown inside the ring in weekly mode.
+  String _weeklyElapsedFormatted(WorkStore store) {
+    final d = store.currentWeekTotal;
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
     return '${h.toString().padLeft(2, '0')}h${m.toString().padLeft(2, '0')}';
   }
 
-  double _ringProgress(WorkStore store) {
-    final active = store.activeSession;
-    if (active == null) return 0;
-    final dailySecs = (store.weeklyTargetHours / 5.0) * 3600;
-    if (dailySecs == 0) return 0;
-    return (_now.difference(active.arrivalTime).inSeconds / dailySecs)
-        .clamp(0.0, 1.0);
+  String _fmtHours(double h) {
+    final totalMin = (h * 60).round();
+    final hours = totalMin ~/ 60;
+    final minutes = totalMin % 60;
+    if (minutes == 0) return '${hours}h';
+    return '${hours}h${minutes.toString().padLeft(2, '0')}';
   }
 
   void _handleClockIn(WorkStore store) {
@@ -99,11 +131,14 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final store = context.watch<WorkStore>();
     final isActive = store.isClockedIn;
+    final isPaused = store.isPaused;
     final active = store.activeSession;
 
-    // Sync pulse with active state
-    if (isActive && !_pulseCtrl.isAnimating) _startPulse();
-    if (!isActive && _pulseCtrl.isAnimating) _stopPulse();
+    // Sync pulse: runs only when working, not when paused
+    if (isActive && !isPaused && !_pulseCtrl.isAnimating) _startPulse();
+    if ((!isActive || isPaused) && _pulseCtrl.isAnimating) _stopPulse();
+
+    final ringColor = isPaused ? WTColors.orange : WTColors.accent;
 
     return Scaffold(
       backgroundColor: WTColors.background,
@@ -134,26 +169,26 @@ class _HomeScreenState extends State<HomeScreen>
             AnimatedBuilder(
               animation: _pulseAnim,
               builder: (_, child) => Transform.scale(
-                scale: isActive ? _pulseAnim.value : 1.0,
+                scale: (isActive && !isPaused) ? _pulseAnim.value : 1.0,
                 child: child,
               ),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Outer glow when active
-                  if (isActive)
+                  // Outer glow when working (not paused)
+                  if (isActive && !isPaused)
                     ArcProgressRing(
                       progress: 1,
                       size: 296,
                       strokeWidth: 2,
-                      foreground: WTColors.accent.withOpacity(0.2),
+                      foreground: ringColor.withOpacity(0.2),
                       background: Colors.transparent,
                     ),
                   ArcProgressRing(
                     progress: _ringProgress(store),
                     size: 260,
                     strokeWidth: 7,
-                    foreground: WTColors.accent,
+                    foreground: ringColor,
                     background: WTColors.border,
                   ),
                   // Inner text
@@ -161,22 +196,46 @@ class _HomeScreenState extends State<HomeScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isActive && active != null) ...[
+                        // State label
                         Text(
-                          'EN COURS',
-                          style: WTText.caps(10)
-                              .copyWith(color: WTColors.accent, letterSpacing: 3),
+                          isPaused
+                              ? 'EN PAUSE'
+                              : (store.isDailyMode
+                                  ? 'EN COURS'
+                                  : 'SEMAINE'),
+                          style: WTText.caps(10).copyWith(
+                            color: ringColor,
+                            letterSpacing: 3,
+                          ),
                         ),
                         const SizedBox(height: 8),
+                        // Time value — daily = session net, weekly = week total
                         Text(
-                          _elapsedFormatted(active.arrivalTime),
+                          store.isDailyMode || isPaused
+                              ? _netElapsedFormatted(active)
+                              : _weeklyElapsedFormatted(store),
                           style: WTText.mono(52),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'depuis ${_formatTime(active.arrivalTime)}',
-                          style: WTText.body(14)
-                              .copyWith(color: WTColors.secondary),
-                        ),
+                        // Context line
+                        if (isPaused && active.currentPause != null)
+                          Text(
+                            'pause ${_pauseDurationFormatted(active.currentPause!)}  •  depuis ${_formatTime(active.arrivalTime)}',
+                            style: WTText.body(13)
+                                .copyWith(color: WTColors.secondary),
+                          )
+                        else if (store.isDailyMode)
+                          Text(
+                            'depuis ${_formatTime(active.arrivalTime)}',
+                            style: WTText.body(14)
+                                .copyWith(color: WTColors.secondary),
+                          )
+                        else
+                          Text(
+                            'objectif ${_fmtHours(store.effectiveWeeklyTarget)}',
+                            style: WTText.body(14)
+                                .copyWith(color: WTColors.secondary),
+                          ),
                       ] else ...[
                         Text(
                           _formatTime(_now),
@@ -197,74 +256,243 @@ class _HomeScreenState extends State<HomeScreen>
 
             const Spacer(),
 
-            // ── Action button ──────────────────────────────────────────
+            // ── Objective mode toggle ──────────────────────────────────
+            _ObjectiveModeToggle(store: store),
+
+            const SizedBox(height: 20),
+
+            // ── Action buttons ─────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: GestureDetector(
-                onTap: isActive
-                    ? () => _confirmClockOut(context, store)
-                    : () => _handleClockIn(store),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 20),
-                  decoration: BoxDecoration(
-                    color: isActive ? WTColors.surface : WTColors.primary,
-                    borderRadius: BorderRadius.circular(20),
-                    border: isActive
-                        ? Border.all(color: WTColors.border)
-                        : null,
-                    boxShadow: isActive
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: WTColors.primary.withOpacity(0.14),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                  ),
-                  child: Row(
-                    children: [
-                      // Status dot
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isActive ? WTColors.red : WTColors.accent,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        isActive
-                            ? 'Pointer ma sortie'
-                            : "Pointer mon arrivée",
-                        style: WTText.label(17).copyWith(
-                          color: isActive
-                              ? WTColors.primary
-                              : WTColors.surface,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        isActive
-                            ? Icons.stop_circle_outlined
-                            : Icons.arrow_forward,
-                        color: isActive ? WTColors.red : WTColors.accent,
-                        size: 22,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: isActive
+                  ? _ActiveButtons(
+                      isPaused: isPaused,
+                      onPause: () => store.startPause(),
+                      onResume: () => store.endPause(),
+                      onClockOut: () => _confirmClockOut(context, store),
+                    )
+                  : _ClockInButton(
+                      onTap: () => _handleClockIn(store),
+                    ),
             ),
 
             const SizedBox(height: 16),
 
             // ── Bottom info bar ────────────────────────────────────────
             _DepartureBar(store: store, now: _now),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Objective Mode Toggle (home screen pill) ──────────────────────────────
+
+class _ObjectiveModeToggle extends StatelessWidget {
+  final WorkStore store;
+  const _ObjectiveModeToggle({required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDaily = store.isDailyMode;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: WTColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: WTColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pill(context, 'Journalier', isDaily,
+              () => store.setObjectiveMode(isDailyMode: true)),
+          _pill(context, 'Hebdomadaire', !isDaily,
+              () => store.setObjectiveMode(isDailyMode: false)),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(BuildContext context, String label, bool selected,
+      VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? WTColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Text(
+          label,
+          style: WTText.label(13).copyWith(
+            color: selected ? WTColors.surface : WTColors.secondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Active Buttons (pause/resume + clock-out) ─────────────────────────────
+
+class _ActiveButtons extends StatelessWidget {
+  final bool isPaused;
+  final VoidCallback onPause;
+  final VoidCallback onResume;
+  final VoidCallback onClockOut;
+
+  const _ActiveButtons({
+    required this.isPaused,
+    required this.onPause,
+    required this.onResume,
+    required this.onClockOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Primary: pause or resume
+        GestureDetector(
+          onTap: isPaused ? onResume : onPause,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            decoration: BoxDecoration(
+              color: isPaused ? WTColors.primary : WTColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: isPaused
+                  ? null
+                  : Border.all(color: WTColors.border),
+              boxShadow: isPaused
+                  ? [
+                      BoxShadow(
+                        color: WTColors.primary.withOpacity(0.14),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isPaused ? WTColors.accent : WTColors.orange,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  isPaused ? 'Reprendre le travail' : 'Mettre en pause',
+                  style: WTText.label(17).copyWith(
+                    color:
+                        isPaused ? WTColors.surface : WTColors.primary,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  isPaused
+                      ? Icons.arrow_forward
+                      : Icons.pause_circle_outline,
+                  color: isPaused ? WTColors.accent : WTColors.orange,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Secondary: clock out
+        GestureDetector(
+          onTap: onClockOut,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: WTColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: WTColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: WTColors.red,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  'Pointer ma sortie',
+                  style:
+                      WTText.label(15).copyWith(color: WTColors.primary),
+                ),
+                const Spacer(),
+                const Icon(Icons.stop_circle_outlined,
+                    color: WTColors.red, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Clock-in Button ───────────────────────────────────────────────────────
+
+class _ClockInButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ClockInButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          color: WTColors.primary,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: WTColors.primary.withOpacity(0.14),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: WTColors.accent,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              "Pointer mon arrivée",
+              style:
+                  WTText.label(17).copyWith(color: WTColors.surface),
+            ),
+            const Spacer(),
+            const Icon(Icons.arrow_forward,
+                color: WTColors.accent, size: 22),
           ],
         ),
       ),

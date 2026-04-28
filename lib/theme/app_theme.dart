@@ -12,6 +12,7 @@ class WTColors {
   static const surface    = Color(0xFFFFFFFF);
   static const border     = Color(0xFFE2E2E2);
   static const red        = Color(0xFFFF3B30);
+  static const orange     = Color(0xFFFF9500); // pause indicator
 }
 
 // ── Text styles ────────────────────────────────────────────────────────────
