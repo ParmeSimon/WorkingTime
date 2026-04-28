@@ -1,0 +1,23 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android
+.gradle/
+local.properties
+*.jks
+*.keystore
+
+# iOS
+.DS_Store
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+Pods/
+
+# Secrets
+.env
+.env.local
+.npmrc
