@@ -69,7 +69,7 @@ class _WeeklyScreenState extends State<WeeklyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('CETTE\nSEMAINE', style: WTText.display(42)),
+                    Text(AppLocalizations.of(context)!.weeklyTitle, style: WTText.display(42)),
                     const SizedBox(height: 6),
                     Text(
                       _weekRange(context).toUpperCase(),
