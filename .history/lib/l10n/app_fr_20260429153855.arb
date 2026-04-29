@@ -1,0 +1,215 @@
+{
+  "@@locale": "fr",
+
+  "appTitle": "Working Time",
+  "@appTitle": { "description": "App name" },
+
+  "tabHome": "Accueil",
+  "@tabHome": { "description": "Bottom nav home tab" },
+
+  "tabWeek": "Semaine",
+  "@tabWeek": { "description": "Bottom nav week tab" },
+
+  "tabHistory": "Historique",
+  "@tabHistory": { "description": "Bottom nav history tab" },
+
+  "onboardingSubtitle": "Configurez votre temps de\ntravail hebdomadaire.",
+  "@onboardingSubtitle": {},
+
+  "onboardingPerWeek": "PAR SEMAINE",
+  "@onboardingPerWeek": {},
+
+  "onboardingStart": "Commencer",
+  "@onboardingStart": {},
+
+  "homeStatusPaused": "EN PAUSE",
+  "@homeStatusPaused": {},
+
+  "homeStatusActive": "EN COURS",
+  "@homeStatusActive": {},
+
+  "homeStatusWeekly": "SEMAINE",
+  "@homeStatusWeekly": {},
+
+  "homePauseContext": "pause {pauseDuration}  •  depuis {arrival}",
+  "@homePauseContext": {
+    "placeholders": {
+      "pauseDuration": { "type": "String" },
+      "arrival": { "type": "String" }
+    }
+  },
+
+  "homeArrivalSince": "depuis {arrival}",
+  "@homeArrivalSince": {
+    "placeholders": {
+      "arrival": { "type": "String" }
+    }
+  },
+
+  "homeObjective": "objectif {target}",
+  "@homeObjective": {
+    "placeholders": {
+      "target": { "type": "String" }
+    }
+  },
+
+  "homeReadyToClockIn": "Prêt à pointer",
+  "@homeReadyToClockIn": {},
+
+  "homeModeDaily": "Journalier",
+  "@homeModeDaily": {},
+
+  "homeModeWeekly": "Hebdomadaire",
+  "@homeModeWeekly": {},
+
+  "homeResume": "Reprendre le travail",
+  "@homeResume": {},
+
+  "homePause": "Mettre en pause",
+  "@homePause": {},
+
+  "homeClockOut": "Pointer ma sortie",
+  "@homeClockOut": {},
+
+  "homeClockIn": "Pointer mon arrivée",
+  "@homeClockIn": {},
+
+  "homeExpectedDeparture": "DÉPART PRÉVU",
+  "@homeExpectedDeparture": {},
+
+  "homeWeekLabel": "SEMAINE",
+  "@homeWeekLabel": {},
+
+  "homeClockOutTitle": "Pointer la sortie",
+  "@homeClockOutTitle": {},
+
+  "homeClockOutConfirm": "Êtes-vous sûr de vouloir enregistrer votre heure de sortie ?",
+  "@homeClockOutConfirm": {},
+
+  "cancel": "Annuler",
+  "@cancel": {},
+
+  "confirm": "Confirmer",
+  "@confirm": {},
+
+  "weeklyTitle": "CETTE\nSEMAINE",
+  "@weeklyTitle": {},
+
+  "weeklyObjectiveLabel": "objectif",
+  "@weeklyObjectiveLabel": {},
+
+  "weeklyWorked": "Travaillé",
+  "@weeklyWorked": {},
+
+  "weeklyObjective": "Objectif",
+  "@weeklyObjective": {},
+
+  "weeklyOvertime": "Heures sup.",
+  "@weeklyOvertime": {},
+
+  "weeklyRemaining": "Restant",
+  "@weeklyRemaining": {},
+
+  "weeklyDays": "Journées",
+  "@weeklyDays": {},
+
+  "weeklySettings": "PARAMÈTRES",
+  "@weeklySettings": {},
+
+  "weeklyObjectiveMode": "Mode d'objectif",
+  "@weeklyObjectiveMode": {},
+
+  "weeklyDailyProgressDesc": "Progression sur la journée en cours",
+  "@weeklyDailyProgressDesc": {},
+
+  "weeklyWeekProgressDesc": "Progression sur la semaine entière",
+  "@weeklyWeekProgressDesc": {},
+
+  "weeklyModeDay": "Jour",
+  "@weeklyModeDay": {},
+
+  "weeklyModeWeek": "Semaine",
+  "@weeklyModeWeek": {},
+
+  "weeklyToday": "Auj.",
+  "@weeklyToday": {},
+
+  "weeklyDailySchedule": "Horaires par jour",
+  "@weeklyDailySchedule": {},
+
+  "weeklyCustomized": "Personnalisé",
+  "@weeklyCustomized": {},
+
+  "weeklyWeekTotal": "Total semaine",
+  "@weeklyWeekTotal": {},
+
+  "reset": "Réinitialiser",
+  "@reset": {},
+
+  "weeklyLunchBreak": "Pause déjeuner",
+  "@weeklyLunchBreak": {},
+
+  "weeklyLunchBreakHint": "Durée de pause ajoutée à votre heure de départ",
+  "@weeklyLunchBreakHint": {},
+
+  "none": "Aucune",
+  "@none": {},
+
+  "weeklyTargetEdit": "Modifier l'objectif hebdomadaire",
+  "@weeklyTargetEdit": {},
+
+  "weeklyCurrentTarget": "Objectif actuel",
+  "@weeklyCurrentTarget": {},
+
+  "save": "Enregistrer",
+  "@save": {},
+
+  "historyTitle": "HISTORIQUE",
+  "@historyTitle": {},
+
+  "historyEmpty": "Aucun historique",
+  "@historyEmpty": {},
+
+  "historyEmptySubtitle": "Vos journées de travail\napparaîtront ici.",
+  "@historyEmptySubtitle": {},
+
+  "historyPauses": "{count, plural, one{1 pause} other{{count} pauses}}",
+  "@historyPauses": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "dayMon": "Lundi",
+  "@dayMon": {},
+  "dayTue": "Mardi",
+  "@dayTue": {},
+  "dayWed": "Mercredi",
+  "@dayWed": {},
+  "dayThu": "Jeudi",
+  "@dayThu": {},
+  "dayFri": "Vendredi",
+  "@dayFri": {},
+  "daySat": "Samedi",
+  "@daySat": {},
+  "daySun": "Dimanche",
+  "@daySun": {},
+
+  "legalTitle": "Légal",
+  "@legalTitle": {},
+
+  "termsTitle": "Conditions d'utilisation",
+  "@termsTitle": {},
+
+  "privacyTitle": "Politique de confidentialité",
+  "@privacyTitle": {},
+
+  "legalLinkText": "Conditions d'utilisation & Politique de confidentialité",
+  "@legalLinkText": {},
+
+  "termsContent": "Conditions d'utilisation\n\nDernière mise à jour : 29 avril 2026\n\n1. Acceptation des conditions\nEn utilisant Working Time, vous acceptez les présentes conditions d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser l'application.\n\n2. Description du service\nWorking Time est une application mobile de suivi du temps de travail. Elle vous permet d'enregistrer vos heures d'arrivée et de départ, vos pauses et de visualiser vos statistiques hebdomadaires.\n\n3. Utilisation personnelle\nL'application est destinée à un usage personnel et non commercial. Vous vous engagez à ne pas utiliser l'application à des fins illégales ou nuisibles.\n\n4. Données locales\nToutes vos données (sessions, paramètres) sont stockées uniquement sur votre appareil. Nous ne collectons aucune donnée sur des serveurs distants.\n\n5. Limitation de responsabilité\nWorking Time est fournie « en l'état ». Nous ne garantissons pas l'exactitude des calculs à des fins légales ou contractuelles. L'application ne remplace pas un système officiel de pointage.\n\n6. Modifications\nNous nous réservons le droit de modifier ces conditions à tout moment. Les modifications seront notifiées via une mise à jour de l'application.\n\n7. Contact\nPour toute question, contactez-nous via l'App Store.",
+  "@termsContent": {},
+
+  "privacyContent": "Politique de confidentialité\n\nDernière mise à jour : 29 avril 2026\n\n1. Données collectées\nWorking Time ne collecte aucune donnée personnelle. Toutes les informations (heures de travail, paramètres, historique) sont stockées localement sur votre appareil via le stockage sécurisé de votre système d'exploitation.\n\n2. Partage des données\nAucune donnée n'est partagée avec des tiers. Nous n'avons accès à aucune de vos informations.\n\n3. Permissions\nL'application peut demander l'accès aux notifications pour vous envoyer des rappels de pointage. Ces notifications restent locales à votre appareil.\n\n4. Sécurité\nVos données sont protégées par les mécanismes de sécurité de votre appareil (chiffrement, accès biométrique, etc.).\n\n5. Suppression des données\nVous pouvez supprimer toutes vos données à tout moment depuis les paramètres de l'application ou en désinstallant l'application.\n\n6. Enfants\nCette application n'est pas destinée aux enfants de moins de 13 ans.\n\n7. Modifications\nNous nous réservons le droit de modifier cette politique. Les changements seront communiqués via les mises à jour de l'application.\n\n8. Contact\nPour toute question relative à la confidentialité, contactez-nous via l'App Store.",
+  "@privacyContent": {}
+}

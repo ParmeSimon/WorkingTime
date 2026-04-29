@@ -1,0 +1,42 @@
+name: working_time
+description: Suivi du temps de travail — iOS & Android
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  provider: ^6.1.2
+
+  # Persistence
+  shared_preferences: ^2.3.2
+
+  # UUID generation
+  uuid: ^4.4.0
+
+  # Date formatting
+  intl: ^0.20.2
+
+  # Icons
+  cupertino_icons: ^1.0.8
+  flutter_local_notifications: ^21.0.0
+  timezone: ^0.11.0
+  flutter_timezone: ^5.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/WorkingTime.png
