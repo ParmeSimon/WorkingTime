@@ -36,9 +36,8 @@ Future<void> main() async {
     // Fallback: keep UTC if timezone detection fails
   }
 
-  // Initialize notifications
+  // Initialize notification plugin (permission request is deferred to first frame)
   await NotificationService.init();
-  await NotificationService.requestPermissions();
 
   // Load persisted data
   final store = WorkStore();
@@ -109,6 +108,15 @@ class _MainShell extends StatefulWidget {
 
 class _MainShellState extends State<_MainShell> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Request notification permission after first frame so the Activity is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.requestPermissions();
+    });
+  }
 
   static const _screens = [
     HomeScreen(),

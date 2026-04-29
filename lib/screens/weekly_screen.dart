@@ -343,21 +343,21 @@ class _DayRow extends StatelessWidget {
             children: [
               SizedBox(
                 width: 88,
-                child: Row(
-                  children: [
-                    Text(
-                      dayName[0].toUpperCase() + dayName.substring(1),
-                      style: WTText.label(isToday ? 15 : 14).copyWith(
-                        color: isToday ? WTColors.primary : WTColors.secondary,
-                      ),
-                    ),
-                    if (isToday) ...[
-                      const SizedBox(width: 8),
-                      TagPill(text: AppLocalizations.of(context)!.weeklyToday, color: WTColors.accent),
-                    ],
-                  ],
+                child: Text(
+                  dayName[0].toUpperCase() + dayName.substring(1),
+                  style: WTText.label(isToday ? 15 : 14).copyWith(
+                    color: isToday ? WTColors.primary : WTColors.secondary,
+                  ),
                 ),
               ),
+              if (isToday) ...[
+                const SizedBox(width: 8),
+                TagPill(
+                  text: AppLocalizations.of(context)!.weeklyToday,
+                  color: WTColors.accent,
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(3),

@@ -1,7 +1,6 @@
 plugins {
-    id("com.workingtime.android")
+    id("com.android.application") // Indispensable pour une app Android
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -25,7 +24,7 @@ android {
         applicationId = "com.workingtime.android"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 24 // flutter_local_notifications v21 requires Android 7.0+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
